@@ -25,8 +25,8 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-from typing import Optional, Dict, List, Union
-from jsg import JSGString, JSGPattern, JSGSchema, JSGObject, bind
+from typing import Optional, Dict, List
+from jsg import JSGString, JSGPattern, JSGSchema, JSGObject, bind, Union
 
 
 class LANGTAG(JSGString):
@@ -125,7 +125,7 @@ class Inclusion(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.include = None             # type: shapeLabel
+        self.include: shapeLabel = None
 
 
 @bind(JSGSchema(length=Optional[INTEGER],
@@ -136,10 +136,10 @@ class stringFacet(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.length = None              # type: Optional[INTEGER]
-        self.minlength = None           # type: Optional[INTEGER]
-        self.maxlength = None           # type: Optional[INTEGER]
-        self.pattern = None             # type: Optional[STRING]
+        self.length: Optional[INTEGER] = None
+        self.minlength: Optional[INTEGER] = None
+        self.maxlength: Optional[INTEGER] = None
+        self.pattern: Optional[STRING] = None
 
 
 @bind(JSGSchema(mininclusive=Optional[numericLiteral],
@@ -152,12 +152,12 @@ class numericFacet(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.mininclusive = None        # type: Optional[numericLiteral]
-        self.minexclusive = None        # type: Optional[numericLiteral]
-        self.maxinclusive = None        # type: Optional[numericLiteral]
-        self.maxexclusive = None        # type: Optional[numericLiteral]
-        self.totaldigits = None         # type: Optional[INTEGER]
-        self.fractiondigits = None      # type: Optional[INTEGER]
+        self.mininclusive: Optional[numericLiteral] = None
+        self.minexclusive: Optional[numericLiteral] = None
+        self.maxinclusive: Optional[numericLiteral] = None
+        self.maxexclusive: Optional[numericLiteral] = None
+        self.totaldigits: Optional[INTEGER] = None
+        self.fractiondigits: Optional[INTEGER] = None
 
 xsFacet = Union[stringFacet, numericFacet]
 
@@ -167,7 +167,7 @@ class Stem(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.stem = None            # type: IRI
+        self.stem: IRI = None
 
 
 @bind()
@@ -183,8 +183,8 @@ class StemRange(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.stem = None            # type: Union[IRI, Wildcard]
-        self.exclusions = None      # type: Optional[List[Union[objectValue, Stem]]]))
+        self.stem: Union[IRI, Wildcard] = None
+        self.exclusions: Optional[List[Union[objectValue, Stem]]] = None
 
 valueSetValue = Union[objectValue, Stem, StemRange]
 
@@ -195,8 +195,8 @@ class SemAct(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.name = None            # type: IRI
-        self.code = None          # type: objectValue
+        self.name: IRI = None
+        self.code: objectValue = None
 
 
 @bind(JSGSchema(predicate=IRI,
@@ -205,8 +205,8 @@ class Annotation(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.predicate = None       # type: IRI
-        self.object = None          # type: objectValue
+        self.predicate: IRI = None
+        self.object: objectValue = None
 
 
 @bind(JSGSchema(inverse=Optional[BOOL],
@@ -221,14 +221,14 @@ class TripleConstraint(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.inverse = None                  # type: Optional[BOOL]
-        self.negated = None                  # type: Optional[BOOL]
-        self.predicate = None                # type: IRI
-        self.valueExpr = None                # type: Optional[shapeExpr]
-        self.min = None                      # type: Optional[INTEGER]
-        self.max = None                      # type: Optional[Union[INTEGER, STAR]]
-        self.semActs = None                  # type: Optional[List[SemAct]]
-        self.annotations = None              # type: Optional[List[Annotation]]
+        self.inverse: Optional[BOOL] = None
+        self.negated: Optional[BOOL] = None
+        self.predicate: IRI = None
+        self.valueExpr: Optional[shapeExpr] = None
+        self.min: Optional[INTEGER] = None
+        self.max: Optional[Union[INTEGER, STAR]] = None
+        self.semActs: Optional[List[SemAct]] = None
+        self.annotations: Optional[List[Annotation]] = None
 
 
 @bind(JSGSchema(min=Optional[INTEGER],
@@ -239,11 +239,11 @@ class OneOf(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.expressions = None             # type: List[tripleExpr]
-        self.min = None                     # type: Optional[INTEGER]
-        self.max = None                     # type: Optional[Union[INTEGER, STAR]]
-        self.semActs = None                 # type: Optional[List[SemAct]]
-        self.annotations = None             # type: Optional[List[Annotation]
+        self.expressions: List[tripleExpr] = None
+        self.min: Optional[INTEGER] = None
+        self.max: Optional[Union[INTEGER, STAR]] = None
+        self.semActs: Optional[List[SemAct]] = None
+        self.annotations: Optional[List[Annotation]] = None
 
 
 @bind(JSGSchema(min=Optional[INTEGER],
@@ -254,11 +254,11 @@ class EachOf(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.expressions = None             # type: List[tripleExpr]
-        self.min = None                     # type: Optional[INTEGER]
-        self.max = None                     # type: Optional[Union[INTEGER, STAR]]
-        self.semActs = None                 # type: Optional[List[SemAct]]
-        self.annotations = None             # type: Optional[List[Annotation]]
+        self.expressions: List[tripleExpr] = None
+        self.min: Optional[INTEGER] = None
+        self.max: Optional[Union[INTEGER, STAR]] = None
+        self.semActs: Optional[List[SemAct]] = None
+        self.annotations: Optional[List[Annotation]] = None
 
 
 tripleExpr = Union[EachOf, OneOf, TripleConstraint, Inclusion]
@@ -279,7 +279,7 @@ class ShapeRef(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.reference = None       # type: IRI
+        self.reference: IRI = None
 
 
 @bind(JSGSchema(virtual=Optional[BOOL],
@@ -292,12 +292,12 @@ class Shape(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.virtual = None            # type: Optional[BOOL]
-        self.closed = None             # type: Optional[BOOL]
-        self.extra = None              # type: Optional[List[IRI]]
-        self.expression = None         # type: Optional[tripleExpr]
-        self.inherit = None            # type: Optional[List[shapeLabel]]
-        self.semActs = None            # type: Optional[List[SemAct]]
+        self.virtual: Optional[BOOL] = None
+        self.closed: Optional[BOOL] = None
+        self.extra: Optional[List[IRI]] = None
+        self.expression: Optional[tripleExpr] = None
+        self.inherit: Optional[List[shapeLabel]] = None
+        self.semActs: Optional[List[SemAct]] = None
 
 
 class NodeType(JSGString):
@@ -307,25 +307,25 @@ class NodeType(JSGString):
 @bind(JSGSchema(nodeKind=Optional[NodeType],
                 datatype=Optional[IRI],
                 values=Optional[List[valueSetValue]],
-                **stringFacet._get_schema().schema,
-                **numericFacet._get_schema().schema))
+                **stringFacet._schema,
+                **numericFacet._schema))
 class NodeConstraint(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.nodeKind = None            # type: Optional[NodeType]
-        self.datatype = None            # type: Optional[IRI]
-        self.mininclusive = None        # type: Optional[numericLiteral]
-        self.minexclusive = None        # type: Optional[numericLiteral]
-        self.maxinclusive = None        # type: Optional[numericLiteral]
-        self.maxexclusive = None        # type: Optional[numericLiteral]
-        self.totaldigits = None         # type: Optional[INTEGER]
-        self.fractiondigits = None      # type: Optional[INTEGER]
-        self.length = None              # type: Optional[INTEGER]
-        self.minlength = None           # type: Optional[INTEGER]
-        self.maxlength = None           # type: Optional[INTEGER]
-        self.pattern = None             # type: Optional[STRING]
-        self.values = None              # type: Optional[List[valueSetValue]]
+        self.nodeKind: Optional[NodeType] = None
+        self.datatype: Optional[IRI] = None
+        self.mininclusive: Optional[numericLiteral] = None
+        self.minexclusive: Optional[numericLiteral] = None
+        self.maxinclusive: Optional[numericLiteral] = None
+        self.maxexclusive: Optional[numericLiteral] = None
+        self.totaldigits: Optional[INTEGER] = None
+        self.fractiondigits: Optional[INTEGER] = None
+        self.length: Optional[INTEGER] = None
+        self.minlength: Optional[INTEGER] = None
+        self.maxlength: Optional[INTEGER] = None
+        self.pattern: Optional[STRING] = None
+        self.values: Optional[List[valueSetValue]] = None
 
 
 @bind()
@@ -333,7 +333,7 @@ class ShapeNot(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.shapeExpr = None           # type: shapeExpr
+        self.shapeExpr: shapeExpr = None
 
 
 @bind()
@@ -341,7 +341,7 @@ class ShapeAnd(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.shapeExprs = None           # type: List[shapeExpr]
+        self.shapeExprs: List[shapeExpr] = None
 
 
 @bind()
@@ -349,7 +349,7 @@ class ShapeOr(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.shapeExprs = None          # type: List[shapeExpr]
+        self.shapeExprs: List[shapeExpr] = None
 
 
 shapeExpr = Union[ShapeOr, ShapeAnd, ShapeNot, NodeConstraint, Shape, ShapeRef, ShapeExternal]
@@ -369,8 +369,8 @@ class Schema(JSGObject):
 
     def __init__(self):
         JSGObject.__init__(self)
-        self.prefixes = None        # type: Optional[Dict[PREFIX, IRI]]
-        self.base = None            # type: Optional[IRI]
-        self.startActs = None       # type: Optional[List[SemAct]]
-        self.start = None           # type: Optional[shapeExpr]
-        self.shapes = None          # type: Optional[Dict[shapeLabel, shapeExpr]]
+        self.prefixes: Optional[Dict[PREFIX, IRI]] = None
+        self.base: Optional[IRI] = None
+        self.startActs: Optional[List[SemAct]] = None
+        self.start: Optional[shapeExpr] = None
+        self.shapes: Optional[Dict[shapeLabel, shapeExpr]] = None

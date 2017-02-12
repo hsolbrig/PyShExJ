@@ -27,29 +27,28 @@
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 import sys
 import unittest
-import ShExJ
+from ShExJ import *
 from logger import Logger
+from memlogger import MemLogger
 from jsg import loads
-
-log = Logger(sys.stderr)
 
 
 class FunctionTestCase(unittest.TestCase):
     def testConstructor(self):
         s = Schema()
-        self.assertTrue(s._is_valid(log))
+        self.assertTrue(s._is_valid())
         s = Schema(base=IRI("http://example.org/"))
-        self.assertTrue(s._is_valid(log))
+        self.assertTrue(s._is_valid())
         sh = Shape()
         sh.closed = BOOL("true")
-        self.assertTrue(sh._is_valid(log))
+        self.assertTrue(sh._is_valid())
         s.shapes = {IRI("S1"): sh}
-        self.assertTrue(s._is_valid(log))
+        self.assertTrue(s._is_valid())
 
     def testLoader1(self):
         shexj = """{ "type": "NodeConstraint", "datatype": "http://a.example/dt1" }"""
         s = loads(shexj)
-        self.assertTrue(s._is_valid(log))
+        self.assertTrue(s._is_valid())
 
     def testLoader2(self):
         shexj = """{
@@ -61,8 +60,7 @@ class FunctionTestCase(unittest.TestCase):
                }
             }"""
         s = loads(shexj)
-        self.assertTrue(isinstance(s, Shape) and s._is_valid(log))
-
+        self.assertTrue(isinstance(s, Shape) and s._is_valid())
 
     def testLoader(self):
         shexj = """{
@@ -79,8 +77,37 @@ class FunctionTestCase(unittest.TestCase):
           }
         }"""
         s = loads(shexj)
-        self.assertTrue(s._is_valid(log))
-        print(s._as_json_dumps())
+        self.assertTrue(s._is_valid())
+        self.assertEqual("""{
+   "type": "Schema",
+   "shapes": {
+      "http://a.example/S1": {
+         "type": "Shape",
+         "expression": {
+            "type": "TripleConstraint",
+            "predicate": "http://a.example/p1",
+            "valueExpr": {
+               "type": "NodeConstraint",
+               "datatype": "http://a.example/dt1"
+            }
+         }
+      }
+   }
+}""", s._as_json_dumps())
+
+    def test_closed(self):
+        shexj = """{
+  "type": "Schema",
+  "shapes":{
+    "http://a.example/S1": {
+      "type": "Shape",
+      "closed": true
+    }
+  }
+}"""
+        s: Schema = loads(shexj)
+        self.assertTrue(s._is_valid())
+        self.assertTrue(s.shapes["http://a.example/S1"].closed == True)
 
 
 if __name__ == '__main__':

@@ -43,15 +43,22 @@ class Logger:
         self.nerrors = 0
         self._logfile = logfile
 
-    def log(self, txt: Optional[str]=None) -> bool:
+    def log(self, txt: str) -> bool:
         """
         Log txt (if any) to the log file (if any). Return value indicates whether it is ok to terminate on the first
         error or whether we need to continue processing.
-        :param txt: text to log. If None, just indicate whether there is a file
+        :param txt: text to log.
         :return: True if we aren't logging, False if we are.
         """
-        if txt is not None:
-            self.nerrors += 1
-            if self._logfile is not None:
-                print(txt, file=self._logfile)
-        return self._logfile is None
+        self.nerrors += 1
+        if self._logfile is not None:
+            print(txt, file=self._logfile)
+        return not self.logging
+
+    @property
+    def logging(self):
+        """
+        Return logging status
+        :return: True if logging is occurring (meaning we want all errors) or False if we just want to find an error
+        """
+        return self._logfile is not None

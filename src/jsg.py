@@ -30,13 +30,12 @@ import json
 from jsonasobj import JsonObj
 from logger import Logger
 from numbers import Number
+from typing import Dict, TextIO, Union, Optional
 
-from typing import Dict, Optional, TextIO, Union, List, Set, Type
-
-from collections import Iterable
+from typing_patch import conforms, as_type, is_typing_type
 
 # Map from jsg TYPE to corresponding class
-schemaMap = {}          # type: Dict[str, Type[JSGObject]]
+schemaMap: Dict[str, object] = {}
 
 # JSG type entry
 # TODO: Figure out how to load these from the compiled JSG
@@ -46,13 +45,37 @@ IGNORE = []             # type: List[str]   List of properties to globally ignor
 # TODO: Extend List to include a minimum and maximum value
 
 
-class JSGObject(JsonObj):
+class JSGValidateable:
+    def _is_valid(self, log: Optional[Logger] = None) -> bool:
+        """
+        Mixin for
+        :param log: Logger to record reason for non validation.
+        :return: True if valid, false otherwise
+        """
+        log.log("Unimplemented validate function")
+        return False
+
+    @property
+    def _class_name(self):
+        return type(self).__name__
+
+
+class JSGObject(JsonObj, JSGValidateable):
     """
     JSGObject is a JsonObj with constraints.
 
     Note that methods and variables in JSGObject should always begin with "_", as we currently restrict the set of
     JSON names to those that begin with [a-zA-Z]
     """
+    _schema = None
+
+    def __init__(self, **_):
+        """
+        Initialization is actually handled in bind Wrapper class.  This method exists for type checking
+        :param _: Dict
+        """
+        JsonObj.__init__(self)
+        pass
 
     @staticmethod
     def _strip_nones(obj):
@@ -70,6 +93,14 @@ class JSGObject(JsonObj):
         """
         return JSGObject._strip_nones(obj) if isinstance(obj, JsonObj)\
             else str(obj) if isinstance(obj, JSGString) else json.JSONEncoder().default(obj)
+
+    def _is_valid(self, log: Optional[Logger] = None) -> bool:
+        if not log:
+            log = Logger()
+        if getattr(self, TYPE) != self._class_name:
+            if log.log("Type mismatch - Expected: {} Actual: {}".format(self._class_name, getattr(self, TYPE))):
+                return False
+        return self._schema.conforms(self, log)
 
 
 class JSGPattern:
@@ -89,11 +120,24 @@ class JSGPattern:
         :param txt: text to check
         :return: True if match
         """
+        if not isinstance(txt, str):
+            print("HERE")
         match = self.pattern.match(txt)
         return match and match.endpos == len(txt)
 
 
-class JSGString:
+class JSGStringMeta(type):
+
+    def __instancecheck__(self, instance) -> bool:
+        # TODO: This is too loose - we really need to see whether instance is the same class as us
+        return not self.pattern or self.pattern.matches(str(instance).lower()
+                                                        if isinstance(instance, bool) else str(instance))
+
+
+class JSGString(JSGValidateable, metaclass=JSGStringMeta):
+    """
+    A string with an optional parsing pattern
+    """
     pattern = None          # type: JSGPattern
 
     def __init__(self, val: str):
@@ -103,24 +147,22 @@ class JSGString:
         """
         self.val = val
 
-    @classmethod
-    def _test_valid(cls, val: str) -> bool:
-        return not cls.pattern or cls.pattern.matches(val)
-
-    def _is_valid(self, log: Logger) -> bool:
+    def _is_valid(self, log: Optional[Logger] = None) -> bool:
         """
         Determine whether the string is valid
         :param log: function for reporting the result
         :return: Result
         """
+        if not log:
+            log = Logger()
         if not isinstance(self.val, str):
             log.log("Wrong type for {}. Expected: {} Actual: {}"
-                    .format(self.__class__.__name__, type(str), type(self.val)))
+                    .format(self._class_name, type(str), type(self.val)))
             return False
         if self.pattern:
             if self.pattern.matches(self.val):
                 return True
-            log.log("Wrong type: {}: {}".format(self.__class__.__name__, self.val))
+            log.log("Wrong type: {}: {}".format(self._class_name, self.val))
             return False
         return True
 
@@ -129,51 +171,40 @@ class JSGString:
 
     def __eq__(self, other):
         if isinstance(other, type(self)):
-            return self.val == other.val
-        elif isinstance(other, str):
-            return self.val == other
+            return self.val == str(other)
         return False
 
     def __hash__(self):
         return hash(self.val)
 
 
-class JSGSchema:
+class JSGSchema(dict):
     """
     A JSON Schema Grammar (JSG) instance
     """
 
-    def __init__(self, **schema):
-        """
-        Construct a JSG Schema instance
-        :param schema: dictionary of name/type tuples
-        """
-        self.schema = schema            # type: Dict[str, object]
-
     @staticmethod
     def _test(entry, log: Logger) -> bool:
         """
-        Test whether entry conforms
-        :param entry:
-        :param log:
-        :return:
+        Test whether entry conforms to its type
+        :param entry: entry to test
+        :param log: place to record issues
+        :return: True if it meets requirements
         """
         if isinstance(entry, dict):
             for k, v in entry.items():
-                if callable(getattr(k, "_is_valid", None)) and not k._is_valid(log) and log.log():
-                    return True
-                if callable(getattr(v, "_is_valid", None)) and not v._is_valid(log) and log.log():
-                    return True
+                if isinstance(k, JSGValidateable) and not k._is_valid(log) and not log.logging:
+                    return False
+                if isinstance(v, JSGValidateable) and not v._is_valid(log) and not log.logging:
+                    return False
         elif isinstance(entry, list):
             for v in entry:
-                if callable(getattr(v, "_is_valid", None)) and not v._is_valid(log) and log.log():
-                    return True
-        elif isinstance(entry, (JSGObject, JSGString)):
-            if not entry._is_valid(log) and log.log():
-                return True
-        else:
-            raise TypeError("Unhandled type")
-        return False
+                if isinstance(v, JSGValidateable) and not v._is_valid(log) and not log.logging:
+                    return False
+        elif isinstance(entry, JSGValidateable):
+            if not entry._is_valid(log) and not log.logging:
+                return False
+        return True
 
     def conforms(self, instance: object, log: Logger, strict: bool = True) -> bool:
         """
@@ -186,21 +217,23 @@ class JSGSchema:
         nerrors = log.nerrors
 
         # Test each schema entry against object
-        for name, typ in self.schema.items():
-            entry = instance.__dict__.get(name)            # Note: None and absent are equivalent
-            if entry is None:
-                if not issubclass(type(None), typ) and log.log("Missing required element: {}: {}".format(name, typ)):
-                    return False
-            elif not issubclass(type(entry), typ):
-                if log.log("Type mismatch for {}. Expecting: {} Got: {}".format(name, typ, type(entry))):
-                    return False
-            elif self._test(entry, log):                    # Make sure that entry conforms to its type
-                    return False
+        for name, typ in self.items():
+            entry = instance.__dict__.get(name)               # Note: None and absent are equivalent
+            if not conforms(entry, typ):
+                if entry is None:
+                    if log.log("{}: Missing required field: {}".format(type(self).__name__, name)):
+                        return False
+                else:
+                    if log.log("{}: Type mismatch for {}. Expecting: {} Got: {}"
+                               .format(type(self).__name__, name, typ, type(entry))):
+                        return False
+            elif entry is not None and not self._test(entry, log):    # Make sure that entry conforms to its own type
+                return False
 
         if strict:
             # Test each attribute against the schema
             for k, v in instance.__dict__.items():
-                if not k.startswith("_") and k not in self.schema and k != TYPE and k not in IGNORE:
+                if not k.startswith("_") and k not in self and k != TYPE and k not in IGNORE:
                     if log.log("Extra element: {}: {}".format(k, v)):
                         return False
 
@@ -209,50 +242,42 @@ class JSGSchema:
 
 def type_instance(typ, instance) -> object:
     """
-    Return a correctly typed instance
+    Cooerce instance to type if possible.
     :param typ: expected type
     :param instance: instance
-    :return: correctly typed instance
+    :return: correctly typed instance or None if not possible.  (Note that None returns None as well)
     """
-    if instance is None:
+    if instance is None:                        # None == absent
         return instance
-    elif issubclass(type(instance), typ):       # Already correctly typed
-        return instance
-    elif issubclass(typ, JSGString) and isinstance(instance, (str, Number)) and typ._test_valid(str(instance)):
-        return typ(str(instance))
-    elif issubclass(typ, Dict):
-        if isinstance(instance, dict):
-            return instance
-        else:
-            raise TypeError("{} cannot be converted to a dictionary".format(instance))
-    elif issubclass(typ, List):
-        return list(instance if isinstance(instance, Iterable) else [instance])
-    elif issubclass(typ, Set):
-        return instance if isinstance(instance, set) else set(instance)
-    elif issubclass(typ, Union):
-        for union_type in typ.__union_params__:
-            ti = type_instance(union_type, instance)
-            if ti is not None:
-                return ti
 
-    return None
+    typed_instance = as_type(instance, typ)
+    if typed_instance is not None:
+        return typed_instance
+    if is_typing_type(typ):
+        return None
+    return typ(str(instance))
 
 
 def bind(schema: JSGSchema = None):
     """
     Bind a JSGObject to a JSG Schema
     :param schema: schema to bind to object.  If not supplied, an empty schema is used
-    :return: Wrapper class
+    :return: Wrapper for actual class.
     """
     if schema is None:
         schema = JSGSchema()
 
-    def wrapper(cls: Type[JSGObject]) -> object:
+    def wrapper(cls: JSGObject) -> object:
+        """
+        Class wrapper -- wrap cls in a WrapperClass instance
+        :param cls: class to wrap
+        :return: WrapperClass
+        """
         cls._schema = schema
 
         class WrapperClass(cls):
             def __init__(self, **kwargs):
-                cls.__init__(self)
+                JSGObject.__init__(self)                  # Strictly for type checking
                 if TYPE:
                     setattr(self, TYPE, cls.__name__)
                 self._load(**kwargs)
@@ -264,26 +289,22 @@ def bind(schema: JSGSchema = None):
                 :param kwargs: entries to append to the schema
                 """
                 for k, v in kwargs.items():
-                    cls._schema.schema[k] = v
+                    schema[k] = v
 
-            @staticmethod
-            def _get_schema() -> JSGSchema:
-                return cls._schema
-
-            def _load(self, **kwargs):
+            def _load(self, **kwargs: Dict[str, object]) -> None:
+                """
+                Load kwargs as variables
+                :param kwargs:
+                """
                 for name in kwargs:
-                    if name in self._get_schema().schema:
-                        setattr(self, name, type_instance(self._get_schema().schema[name], kwargs[name]))
+                    if name in schema:
+                        setattr(self, name, type_instance(schema[name], kwargs[name]))
                     else:
                         setattr(self, name, kwargs[name])
 
-            def _is_valid(self, log: Optional[Logger] = None) -> bool:
-                if log is None:
-                    log = Logger()
-                if getattr(self, TYPE) != cls.__name__:
-                    if log.log("Type mismatch - Expected: {} Actual: {}".format(cls.__name__, getattr(self, TYPE))):
-                        return False
-                return cls._schema.conforms(self, log)
+            @property
+            def _class_name(self):
+                return cls.__name__
 
             @property
             def _cls(self) -> object:
@@ -298,6 +319,11 @@ def bind(schema: JSGSchema = None):
 
 
 def loads_loader(pairs) -> object:
+    """
+    json loader objecthook
+    :param pairs:
+    :return:
+    """
     if TYPE in pairs:
         cls = schemaMap.get(pairs[TYPE])
         if cls:
@@ -307,18 +333,22 @@ def loads_loader(pairs) -> object:
 
 
 def loads(s: str, **kwargs) -> JSGObject:
-    """ Convert a json_str into a JSGObject instance
-    :param s: a str instance containing a JSON document
+    """ Convert a JSON string into a JSGObject
+    :param s: string representation of JSON document
     :param kwargs: arguments see: json.load for details
-    :return: JsonObj representing the json string
+    :return: JSGObject representing the json string
     """
     return json.loads(s, object_hook=loads_loader, **kwargs)
 
 
-def load(fp: TextIO, **kwargs) -> JSGObject:
-    """ Deserialize fp (a .read()-supporting file-like object containing a JSON document) to a JsonObj
+def load(fp: Union[TextIO, str], **kwargs) -> JSGObject:
+    """ Convert a file name or file-like object containing stringified JSON into a JSGObject
     :param fp: file-like object to deserialize
     :param kwargs: arguments. see: json.load for details
-    :return: JsonObj representing fp
+    :return: JSGObject representing fp
     """
-    return loads(fp.read(), **kwargs)
+    if isinstance(fp, str):
+        with open(fp) as f:
+            return loads(f.read(), **kwargs)
+    else:
+        return loads(fp.read(), **kwargs)

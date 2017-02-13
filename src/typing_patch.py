@@ -25,7 +25,12 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-from typing import _Union, GenericMeta, _ForwardRef, Dict, Any
+import sys
+from typing import GenericMeta, _ForwardRef, Dict, Any
+if sys.version_info < (3, 6):
+    from typing import Union
+else:
+    from typing import _Union
 
 from collections import Iterable
 
@@ -34,7 +39,8 @@ from collections import Iterable
 
 def conforms(element, typ) -> bool:
     if is_forward(typ):
-        typ = typ._eval_type(None, None)        # All forwards have to already be fixed
+        ns = {}
+        typ = typ._eval_type(ns, ns)        # All forwards have to already be fixed
     if is_union(typ):
         return union_conforms(element, typ)
     elif is_dict(typ):
@@ -73,7 +79,10 @@ def is_forward(typ) -> bool:
 
 
 def is_union(typ) -> bool:
-    return type(typ) is _Union
+    if sys.version_info < (3, 6):
+        return issubclass(typ, Union)
+    else:
+        return type(typ) is _Union
 
 
 def is_dict(typ) -> bool:
@@ -86,12 +95,14 @@ def is_iterable(typ) -> bool:
 
 def union_conforms(element, typ) -> bool:
     if is_union(typ):
-        return any([conforms(element, t) for t in typ.__args__])
+        union_vals = typ.__union_params__ if sys.version_info < (3, 6) else typ.__args__
+        return any([conforms(element, t) for t in union_vals])
     return False
 
 
 def as_union(element, typ) -> object:
-    for t in typ.__args__:
+    union_vals = typ.__union_params__ if sys.version_info < (3, 6) else typ.__args__
+    for t in union_vals:
         if conforms(element, t):
             return element
     return None
@@ -128,9 +139,11 @@ def fix_forward(ns: Dict[str, Any], val: Any) -> None:
         if isinstance(val, GenericMeta):                # Skip the types themselves
             pass
         elif is_forward(val):
-            val._eval_type(ns, None)
-        elif is_union(val) and val.__args__ is not None:
-            [fix_forward(ns, t) for t in val.__args__]
+            val._eval_type(ns, {})
+        elif is_union(val):
+            union_vals = val.__union_params__ if sys.version_info < (3, 6) else val.__args__
+            if union_vals is not None:
+                [fix_forward(ns, t) for t in union_vals]
         elif is_dict(val) and val.__args__ is not None:
             [fix_forward(ns, t) for t in val.__args__]
         elif is_iterable(val) and val.__extra__ is not None:

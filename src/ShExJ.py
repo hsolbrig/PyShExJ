@@ -236,7 +236,7 @@ class TripleConstraint(JSGObject):
         self.predicate = predicate
         self.inverse = inverse
         self.negated = negated
-        self.valueExpr: Optional[shapeExpr] = valueExpr
+        self.valueExpr = valueExpr
         self.min = min
         self.max = max
         self.semActs = semActs

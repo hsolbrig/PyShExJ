@@ -59,3 +59,37 @@ PREDICATE: http://a.example/p1
 Valid: True
 No clowns
 ```
+
+## Constructing a shape from scratch
+```python
+import ShExJ
+
+schema = ShExJ.Schema()
+shape = ShExJ.Shape()
+shape.expression = ShExJ.TripleConstraint(predicate="http://a.example/p1",
+                                          semActs = [ShExJ.SemAct(name="http://shex.io/extensions/Test", code=" print(o) ")])
+schema.shapes = {"http://a.example/S1": shape}
+schema._is_valid()
+print(schema._as_json_dumps())
+```
+```text
+{
+   "type": "Schema",
+   "shapes": {
+      "http://a.example/S1": {
+         "type": "Shape",
+         "expression": {
+            "type": "TripleConstraint",
+            "predicate": "http://a.example/p1",
+            "semActs": [
+               {
+                  "type": "SemAct",
+                  "name": "http://shex.io/extensions/Test",
+                  "code": " print(o) "
+               }
+            ]
+         }
+      }
+   }
+}
+```

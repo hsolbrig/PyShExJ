@@ -27,6 +27,7 @@
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 import re
 import json
+from collections import OrderedDict
 from typing import TextIO, Union, Optional, Any, Dict
 from inspect import signature, Parameter
 
@@ -107,7 +108,7 @@ class JSGObject(JsonObj, JSGValidateable):
         :param d: Object with attributes
         :return: Object dictionary w/ Nones and underscores removed
         """
-        return {k: v for k, v in d.items() if not k.startswith("_") and v is not None}
+        return OrderedDict({k: v for k, v in d.items() if not k.startswith("_") and v is not None})
 
     @staticmethod
     def _test(entry, log: Logger) -> bool:
@@ -214,7 +215,7 @@ class JSGString(JSGValidateable, metaclass=JSGStringMeta):
         Construct a simple string variable
         :param val: any type that can be cooreced into a string
         """
-        self.val: str = self._adjust_for_json(val)
+        self.val = self._adjust_for_json(val)
 
     @staticmethod
     def _adjust_for_json(val: Any) -> str:

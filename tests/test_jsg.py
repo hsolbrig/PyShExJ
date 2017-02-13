@@ -30,7 +30,9 @@ import unittest
 import ShExJ
 from ShExJ import *
 from jsg import loads
+from jsonasobj import loads as jao_loads
 
+from dict_compare import dict_compare
 
 class FunctionTestCase(unittest.TestCase):
     def testConstructor(self):
@@ -77,7 +79,7 @@ class FunctionTestCase(unittest.TestCase):
         }"""
         s = loads(shexj, ShExJ)
         self.assertTrue(s._is_valid())
-        self.assertEqual("""{
+        self.assertTrue(dict_compare(jao_loads("""{
    "type": "Schema",
    "shapes": {
       "http://a.example/S1": {
@@ -92,7 +94,7 @@ class FunctionTestCase(unittest.TestCase):
          }
       }
    }
-}""", s._as_json_dumps())
+}""")._as_dict, s._as_dict))
 
     def test_closed(self):
         shexj = """{
@@ -104,7 +106,7 @@ class FunctionTestCase(unittest.TestCase):
     }
   }
 }"""
-        s: Schema = loads(shexj, ShExJ)
+        s = loads(shexj, ShExJ)
         self.assertTrue(s._is_valid())
         self.assertTrue(s.shapes["http://a.example/S1"].closed)
 

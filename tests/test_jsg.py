@@ -25,11 +25,10 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-import sys
 import unittest
+
+import ShExJ
 from ShExJ import *
-from logger import Logger
-from memlogger import MemLogger
 from jsg import loads
 
 
@@ -47,7 +46,7 @@ class FunctionTestCase(unittest.TestCase):
 
     def testLoader1(self):
         shexj = """{ "type": "NodeConstraint", "datatype": "http://a.example/dt1" }"""
-        s = loads(shexj)
+        s = loads(shexj, ShExJ)
         self.assertTrue(s._is_valid())
 
     def testLoader2(self):
@@ -59,7 +58,7 @@ class FunctionTestCase(unittest.TestCase):
                 "valueExpr": { "type": "NodeConstraint", "datatype": "http://a.example/dt1" }
                }
             }"""
-        s = loads(shexj)
+        s = loads(shexj, ShExJ)
         self.assertTrue(isinstance(s, Shape) and s._is_valid())
 
     def testLoader(self):
@@ -76,7 +75,7 @@ class FunctionTestCase(unittest.TestCase):
             }
           }
         }"""
-        s = loads(shexj)
+        s = loads(shexj, ShExJ)
         self.assertTrue(s._is_valid())
         self.assertEqual("""{
    "type": "Schema",
@@ -105,9 +104,9 @@ class FunctionTestCase(unittest.TestCase):
     }
   }
 }"""
-        s: Schema = loads(shexj)
+        s: Schema = loads(shexj, ShExJ)
         self.assertTrue(s._is_valid())
-        self.assertTrue(s.shapes["http://a.example/S1"].closed == True)
+        self.assertTrue(s.shapes["http://a.example/S1"].closed)
 
 
 if __name__ == '__main__':

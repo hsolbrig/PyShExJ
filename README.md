@@ -8,9 +8,8 @@ Also note that the ShEx and ShExJ specifications continue to evolve :unamused:, 
 
 ## Example
 ```python
-import ShExJ, logger
+import ShExJ
 from jsg import loads
-import sys
 
 shexj = """{
   "type": "Schema",
@@ -25,15 +24,17 @@ shexj = """{
     }
   }
 }"""
-s: ShExJ.Schema = loads(shexj)
+s: ShExJ.Schema = loads(shexj, ShExJ)
 print("type(Shema): {}".format(s.type))
 S1 = ShExJ.IRI("http://a.example/S1")
 print("PREDICATE: {}".format(s.shapes[S1].expression.predicate))
 s.shapes[S1].closed = ShExJ.BOOL("true")
 print(s._as_json_dumps())
 print("Valid: {}".format(s._is_valid()))
-s.shapes[S1].clown = ShExJ.INTEGER("17")
-print("Valid: {}".format(s._is_valid(logger.Logger(sys.stdout))))
+try:
+    s.shapes[S1].clown = ShExJ.INTEGER("17")
+except ValueError as e:
+    print("No clowns")
 ```
 ```text
 type(Shema): Schema
@@ -43,6 +44,7 @@ PREDICATE: http://a.example/p1
    "shapes": {
       "http://a.example/S1": {
          "type": "Shape",
+         "closed": "true",
          "expression": {
             "type": "TripleConstraint",
             "predicate": "http://a.example/p1",
@@ -50,12 +52,10 @@ PREDICATE: http://a.example/p1
                "type": "NodeConstraint",
                "datatype": "http://a.example/dt1"
             }
-         },
-         "closed": "true"
+         }
       }
    }
 }
 Valid: True
-Extra element: clown: 17
-Valid: False
+No clowns
 ```

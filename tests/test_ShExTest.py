@@ -43,9 +43,9 @@ batch = False
 
 
 def compare_json(j1, j2, log):
-    d1 = jao_loads(j1)._as_dict
-    d2 = jao_loads(j2)._as_dict
-    return compare_dicts(d1, d2, file=log)
+    d1 = jao_loads(j1)
+    d2 = jao_loads(j2)
+    return compare_dicts(d1._as_dict, d2._as_dict, file=log)
 
 
 def proc_shexj(input_fn: str, _output_fn: str, _opts: Namespace) -> bool:
@@ -59,7 +59,7 @@ def proc_shexj(input_fn: str, _output_fn: str, _opts: Namespace) -> bool:
     log = MemLogger("\t")
     with open(input_fn) as f:
         json_str = f.read()
-        s = jsg_loads(json_str)
+        s = jsg_loads(json_str, ShExJ)
         if not s._is_valid(log=Logger(log)):
             print("File: {} - ".format(input_fn))
             print(log.log)

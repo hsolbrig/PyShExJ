@@ -25,13 +25,16 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
-from typing import _Union, GenericMeta
+from typing import _Union, GenericMeta, _ForwardRef, Dict, Any
+
 from collections import Iterable
 
 
 # TODO: Pay attention to the goings on at the python development (http://bugs.python.org/issue29262) and #377
 
 def conforms(element, typ) -> bool:
+    if is_forward(typ):
+        typ = typ._eval_type(None, None)        # All forwards have to already be fixed
     if is_union(typ):
         return union_conforms(element, typ)
     elif is_dict(typ):
@@ -49,6 +52,8 @@ def is_typing_type(typ) -> bool:
 def as_type(element, typ) -> object:
     if element is None:
         return element
+    if is_forward(typ):
+        typ = typ._eval_type(None, None)        # All forwards should already be vixed
     if is_union(typ):
         if union_conforms(element, typ):
             return as_union(element, typ)
@@ -61,6 +66,10 @@ def as_type(element, typ) -> object:
     elif element_conforms(element, typ):
         return typ(element)
     return None
+
+
+def is_forward(typ) -> bool:
+    return type(typ) is _ForwardRef
 
 
 def is_union(typ) -> bool:
@@ -81,7 +90,7 @@ def union_conforms(element, typ) -> bool:
     return False
 
 
-def as_union(element, typ) -> bool:
+def as_union(element, typ) -> object:
     for t in typ.__args__:
         if conforms(element, t):
             return element
@@ -103,8 +112,26 @@ def iterable_conforms(element, typ) -> bool:
 
 
 def element_conforms(element, typ) -> bool:
-    if typ is type(None):
+    if isinstance(typ, type(type)) and issubclass(typ, type(None)):
         return element is None
     elif element is None:
         return False
     return isinstance(element, typ)
+
+
+def fix_forwards(ns: Dict[str, Any]) -> None:
+    for k, val in ns.items():
+        fix_forward(ns, val)
+
+
+def fix_forward(ns: Dict[str, Any], val: Any) -> None:
+        if isinstance(val, GenericMeta):                # Skip the types themselves
+            pass
+        elif is_forward(val):
+            val._eval_type(ns, None)
+        elif is_union(val) and val.__args__ is not None:
+            [fix_forward(ns, t) for t in val.__args__]
+        elif is_dict(val) and val.__args__ is not None:
+            [fix_forward(ns, t) for t in val.__args__]
+        elif is_iterable(val) and val.__extra__ is not None:
+            [fix_forward(ns, v) for v in val.__extra__]

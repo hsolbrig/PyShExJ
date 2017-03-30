@@ -38,7 +38,7 @@ from typing_patch import conforms
 
 # JSG type entry
 # TODO: Figure out how to load these from the compiled JSG instance
-TYPE = "type"           # type: str
+TYPE = []           # type: str
 IGNORE = []             # type: List[str]   List of properties to globally ignore
 
 # TODO: Extend List to include a minimum and maximum value
@@ -178,7 +178,7 @@ class JSGObject(JsonObj, JSGValidateable):
 
 class JSGPattern:
     """
-    JSG Parsing pattern
+    A lexerRuleBlock
     """
     def __init__(self, pattern: str):
         """
@@ -206,7 +206,7 @@ class JSGStringMeta(type):
 
 class JSGString(JSGValidateable, metaclass=JSGStringMeta):
     """
-    A string with an optional parsing pattern
+    A lexerRuleSpec
     """
     pattern = None          # type: JSGPattern
 

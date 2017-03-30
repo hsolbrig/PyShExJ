@@ -1,5 +1,7 @@
 # PyShExJ - python bindings and parser for [ShExJ](https://github.com/shexSpec/shexTest/blob/master/doc/ShExJ.jsg)
 
+# NOTE: This project has been superceded by the [PyJSG](http://github.com/hsolbrig/pyjsg) project, which incorporates a JSG to Python compiler.
+
 A collection of Python classes that represent the [json-grammar](https://github.com/ericprud/jsg) definition of the Shape Expressions [ShEx]() language. 
 
 At the moment, [ShExJ.py](src/ShExj.py) has been hand compiled form the [ShExJ.jsg]((https://github.com/shexSpec/shexTest/blob/master/doc/ShExJ.jsg)) source.  Our eventual goal is to create a generic [JSG](https://github.com/ericprud/jsg) compiler that will generate the equivalent for any JSON schema.
